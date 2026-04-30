@@ -1,9 +1,87 @@
 {
   "name": "Frost Tasks",
   "short_name": "Frost",
+  "description": "Task management system for Frost Mechanical Works integrated with ERPNext",
   "start_url": "/frost_tasks",
+  "scope": "/",
   "display": "standalone",
+  "orientation": "portrait",
   "background_color": "#0a0f1e",
   "theme_color": "#0a0f1e",
-  "icons": []
+
+  "icons": [
+    {
+      "src": "/frost-icon-72.png",
+      "sizes": "72x72",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/frost-icon-96.png",
+      "sizes": "96x96",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/frost-icon-128.png",
+      "sizes": "128x128",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/frost-icon-144.png",
+      "sizes": "144x144",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/frost-icon-152.png",
+      "sizes": "152x152",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/frost-icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/frost-icon-384.png",
+      "sizes": "384x384",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/frost-icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+
+  "shortcuts": [
+    {
+      "name": "New Task",
+      "short_name": "Add Task",
+      "url": "/frost_tasks#new",
+      "icons": [
+        {
+          "src": "/frost-icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "My Tasks",
+      "short_name": "Tasks",
+      "url": "/frost_tasks#tasks",
+      "icons": [
+        {
+          "src": "/frost-icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    }
+  ]
 }
