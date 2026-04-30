@@ -1,5 +1,0 @@
-app_name = "frost_tasks_app"
-app_title = "Frost Tasks App"
-app_publisher = "Frost Mechanical Works"
-app_description = "PWA Task Manager for Frost"
-app_version = "0.0.1"
