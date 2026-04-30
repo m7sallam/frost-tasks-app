@@ -3,183 +3,588 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Frost Tasks">
+<link rel="manifest" href="/manifest.json">
+<meta name="apple-touch-icon" href="/frost-icon-192.png">
 <meta name="theme-color" content="#0a0f1e">
 <title>Frost Tasks</title>
-
-<link rel="manifest" href="/manifest.json">
-<link rel="apple-touch-icon" href="/frost-icon-192.png">
-
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&display=swap" rel="stylesheet">
 <style>
-body{margin:0;font-family:sans-serif;background:#0a0f1e;color:#fff}
-#app{padding:20px}
-button{padding:10px;border-radius:8px;border:none;background:#3b82f6;color:#fff}
-input,select{padding:10px;width:100%;margin-bottom:10px}
-.card{background:#111827;padding:15px;border-radius:12px;margin-bottom:10px}
+  :root {
+    --bg:#0a0f1e;--surface:#111827;--surface2:#1a2235;--surface3:#1f2d42;
+    --border:rgba(255,255,255,0.07);--text:#f0f4ff;--text2:#8899bb;--text3:#4a5a78;
+    --accent:#3b82f6;--accent2:#60a5fa;--green:#22c55e;--yellow:#eab308;
+    --red:#ef4444;--orange:#f97316;--purple:#a855f7;--cyan:#06b6d4;
+    --safe-top:env(safe-area-inset-top,44px);--safe-bot:env(safe-area-inset-bottom,34px);
+    --radius:18px;--radius-sm:12px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100dvh;overflow-x:hidden;-webkit-font-smoothing:antialiased}
+
+  #splash{position:fixed;inset:0;z-index:100;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;transition:opacity .5s ease,transform .5s ease}
+  #splash.hidden{opacity:0;transform:scale(.96);pointer-events:none}
+  .splash-logo{width:88px;height:88px;background:linear-gradient(135deg,#1d4ed8,#3b82f6,#06b6d4);border-radius:22px;display:flex;align-items:center;justify-content:center;font-size:40px;margin-bottom:20px;box-shadow:0 20px 60px rgba(59,130,246,.35)}
+  .splash-title{font-size:28px;font-weight:700;letter-spacing:-.5px}
+  .splash-sub{font-size:14px;color:var(--text2);margin-top:4px;margin-bottom:40px}
+  .login-card{width:min(360px,90vw);background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:24px;display:flex;flex-direction:column;gap:14px}
+  .btn-primary{width:100%;background:linear-gradient(135deg,#1d4ed8,#3b82f6);border:none;border-radius:var(--radius-sm);color:#fff;font-size:16px;font-weight:600;padding:16px;cursor:pointer;font-family:inherit;transition:transform .1s,opacity .2s;box-shadow:0 8px 24px rgba(59,130,246,.3)}
+  .btn-primary:active{transform:scale(.97);opacity:.9}
+  .btn-primary.loading{opacity:.7;pointer-events:none}
+
+  #app{display:none;flex-direction:column;min-height:100dvh;padding-bottom:calc(80px + var(--safe-bot))}
+  #app.visible{display:flex}
+
+  .topbar{padding:calc(var(--safe-top) + 12px) 20px 16px;background:var(--bg);position:sticky;top:0;z-index:50;border-bottom:1px solid var(--border);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px)}
+  .topbar-inner{display:flex;align-items:center;justify-content:space-between}
+  .topbar-left h1{font-size:26px;font-weight:700;letter-spacing:-.4px}
+  .topbar-left p{font-size:13px;color:var(--text2);margin-top:1px}
+  .topbar-right{display:flex;align-items:center;gap:10px}
+  .avatar{width:38px;height:38px;background:linear-gradient(135deg,#1d4ed8,#06b6d4);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:700;color:#fff;cursor:pointer}
+  .conn-pill{display:inline-flex;align-items:center;gap:5px;background:rgba(34,197,94,.12);color:var(--green);padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700}
+  .conn-pill::before{content:'';width:6px;height:6px;background:var(--green);border-radius:50%;animation:pulse 2s infinite}
+  .conn-pill.offline{background:rgba(239,68,68,.12);color:var(--red)}
+  .conn-pill.offline::before{background:var(--red);animation:none}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+
+  .scroll{flex:1;overflow-y:auto;padding:20px;display:flex;flex-direction:column;gap:20px}
+  .scroll::-webkit-scrollbar{display:none}
+
+  .stats-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+  .stat-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px 12px;display:flex;flex-direction:column;gap:4px;cursor:pointer;transition:transform .15s;position:relative;overflow:hidden}
+  .stat-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px}
+  .stat-card.open::before{background:var(--yellow)}
+  .stat-card.progress::before{background:var(--accent)}
+  .stat-card.done::before{background:var(--green)}
+  .stat-card:active{transform:scale(.96)}
+  .stat-num{font-size:26px;font-weight:700;letter-spacing:-1px}
+  .stat-card.open .stat-num{color:var(--yellow)}
+  .stat-card.progress .stat-num{color:var(--accent2)}
+  .stat-card.done .stat-num{color:var(--green)}
+  .stat-label{font-size:11px;color:var(--text2);font-weight:500;text-transform:uppercase;letter-spacing:.4px}
+
+  .section-block{display:flex;flex-direction:column}
+  .section-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+  .section-hdr h2{font-size:18px;font-weight:700;letter-spacing:-.2px}
+  .section-hdr button{background:var(--surface2);border:1px solid var(--border);border-radius:20px;padding:6px 14px;color:var(--accent2);font-size:12px;font-weight:600;cursor:pointer;font-family:inherit}
+
+  .actions-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .action-btn{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px 16px;display:flex;flex-direction:column;align-items:flex-start;gap:10px;cursor:pointer;transition:transform .15s;font-family:inherit;text-align:left}
+  .action-btn:active{transform:scale(.95)}
+  .action-icon{width:46px;height:46px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:22px}
+  .action-btn .lbl{font-size:14px;font-weight:700;color:var(--text);line-height:1.2}
+  .action-btn .sub{font-size:11px;color:var(--text2);margin-top:1px}
+  .action-btn.blue .action-icon{background:rgba(59,130,246,.2)}
+  .action-btn.green .action-icon{background:rgba(34,197,94,.15)}
+  .action-btn.orange .action-icon{background:rgba(249,115,22,.15)}
+  .action-btn.purple .action-icon{background:rgba(168,85,247,.15)}
+  .action-btn.cyan .action-icon{background:rgba(6,182,212,.15)}
+  .action-btn.red .action-icon{background:rgba(239,68,68,.12)}
+
+  .proj-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:18px;cursor:pointer;transition:transform .15s;margin-bottom:10px}
+  .proj-card:active{transform:scale(.98)}
+  .proj-card-header{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
+  .proj-name{font-size:16px;font-weight:700;letter-spacing:-.2px;line-height:1.2}
+  .proj-meta{font-size:12px;color:var(--text2);margin-top:4px}
+  .badge{display:inline-flex;align-items:center;padding:4px 10px;border-radius:20px;font-size:11px;font-weight:700;white-space:nowrap;text-transform:uppercase;letter-spacing:.3px}
+  .badge.active{background:rgba(34,197,94,.15);color:var(--green)}
+  .badge.hold{background:rgba(234,179,8,.15);color:var(--yellow)}
+  .badge.completed{background:rgba(59,130,246,.15);color:var(--accent2)}
+  .badge.cancelled{background:rgba(239,68,68,.12);color:var(--red)}
+  .progress-bar-wrap{margin-top:14px}
+  .progress-bar-label{display:flex;justify-content:space-between;font-size:11px;color:var(--text2);margin-bottom:6px}
+  .progress-bar-track{background:var(--surface3);border-radius:10px;height:6px;overflow:hidden}
+  .progress-bar-fill{height:100%;border-radius:10px;transition:width .6s cubic-bezier(.34,1.56,.64,1)}
+  .fill-green{background:linear-gradient(90deg,#16a34a,#22c55e)}
+  .fill-blue{background:linear-gradient(90deg,#1d4ed8,#60a5fa)}
+  .fill-yellow{background:linear-gradient(90deg,#ca8a04,#eab308)}
+
+  .task-item{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:16px;display:flex;align-items:flex-start;gap:14px;cursor:pointer;transition:transform .12s;margin-bottom:8px}
+  .task-item:active{transform:scale(.98)}
+  .task-check{width:26px;height:26px;flex-shrink:0;border-radius:50%;border:2px solid var(--text3);display:flex;align-items:center;justify-content:center;font-size:14px;transition:all .2s;cursor:pointer;background:transparent}
+  .task-check.done{background:var(--green);border-color:var(--green);color:#fff}
+  .task-check.progress{border-color:var(--accent);background:rgba(59,130,246,.15)}
+  .task-body{flex:1;min-width:0}
+  .task-name{font-size:15px;font-weight:600}
+  .task-name.done{text-decoration:line-through;color:var(--text2)}
+  .task-detail{font-size:12px;color:var(--text2);margin-top:3px}
+  .task-tags{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}
+  .tag{font-size:10px;font-weight:700;padding:3px 8px;border-radius:6px;text-transform:uppercase;letter-spacing:.3px}
+  .tag.urgent{background:rgba(239,68,68,.15);color:var(--red)}
+  .tag.medium{background:rgba(234,179,8,.15);color:var(--yellow)}
+  .tag.low{background:rgba(34,197,94,.12);color:var(--green)}
+  .tag.proj{background:rgba(59,130,246,.12);color:var(--accent2)}
+
+  .bottom-nav{position:fixed;bottom:0;left:0;right:0;background:rgba(10,15,30,.92);border-top:1px solid var(--border);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);padding:10px 0 calc(10px + var(--safe-bot));display:flex;justify-content:space-around;z-index:50}
+  .nav-btn{display:flex;flex-direction:column;align-items:center;gap:3px;padding:6px 18px;cursor:pointer;background:none;border:none;font-family:inherit}
+  .nav-icon{font-size:22px;transition:transform .15s}
+  .nav-btn.active .nav-icon{transform:scale(1.1);filter:drop-shadow(0 0 6px rgba(96,165,250,.5))}
+  .nav-label{font-size:10px;font-weight:600;color:var(--text2)}
+  .nav-btn.active .nav-label{color:var(--accent2)}
+
+  .modal-overlay{position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.65);backdrop-filter:blur(8px);display:flex;align-items:flex-end;opacity:0;pointer-events:none;transition:opacity .3s}
+  .modal-overlay.open{opacity:1;pointer-events:all}
+  .modal-sheet{width:100%;background:var(--surface);border-radius:24px 24px 0 0;padding:24px 20px calc(24px + var(--safe-bot));transform:translateY(100%);transition:transform .35s cubic-bezier(.32,.72,0,1);max-height:90dvh;overflow-y:auto}
+  .modal-overlay.open .modal-sheet{transform:translateY(0)}
+  .modal-handle{width:36px;height:4px;background:var(--surface3);border-radius:2px;margin:0 auto 20px}
+  .modal-title{font-size:20px;font-weight:700;margin-bottom:20px}
+  .field-group{display:flex;flex-direction:column;gap:14px}
+  .field-wrap{display:flex;flex-direction:column;gap:6px}
+  .field-wrap label{font-size:12px;font-weight:600;color:var(--text2);letter-spacing:.5px}
+  .field-wrap input,.field-wrap select,.field-wrap textarea{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px 16px;color:var(--text);font-size:15px;font-family:inherit;outline:none;transition:border-color .2s;width:100%}
+  .field-wrap select option{background:var(--surface2)}
+  .field-wrap textarea{resize:none;min-height:90px}
+  .field-wrap input:focus,.field-wrap select:focus,.field-wrap textarea:focus{border-color:var(--accent)}
+  .modal-actions{display:flex;gap:10px;margin-top:22px}
+  .btn-cancel{flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px;color:var(--text2);font-size:15px;font-weight:600;cursor:pointer;font-family:inherit}
+  .btn-save{flex:2;background:linear-gradient(135deg,#1d4ed8,#3b82f6);border:none;border-radius:var(--radius-sm);padding:14px;color:#fff;font-size:15px;font-weight:600;cursor:pointer;font-family:inherit;box-shadow:0 8px 20px rgba(59,130,246,.25)}
+
+  .toast{position:fixed;top:calc(var(--safe-top) + 60px);left:50%;transform:translateX(-50%) translateY(-20px);background:var(--green);color:#fff;padding:12px 20px;border-radius:30px;font-size:14px;font-weight:600;opacity:0;transition:all .3s;pointer-events:none;z-index:300;white-space:nowrap;box-shadow:0 8px 24px rgba(34,197,94,.35)}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+  .toast.error{background:var(--red);box-shadow:0 8px 24px rgba(239,68,68,.35)}
+
+  .page{display:none;flex-direction:column;flex:1}
+  .page.active{display:flex}
+  .spinner{width:20px;height:20px;border:2px solid rgba(255,255,255,.2);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;display:inline-block;margin-right:8px}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .empty-state{text-align:center;padding:40px 20px;color:var(--text2);font-size:14px}
+  .empty-icon{font-size:40px;margin-bottom:12px}
+  .swipe-hint{font-size:11px;color:var(--text3);text-align:center;padding:8px 0 0}
+  @keyframes slideUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+  .animate-in{animation:slideUp .4s ease both}
+  .delay-1{animation-delay:.05s}
+  .delay-2{animation-delay:.1s}
+  .delay-3{animation-delay:.15s}
 </style>
 </head>
-
 <body>
 
-<div id="app">
-  <h2>Frost Tasks</h2>
-
-  <button onclick="syncAll()">🔄 Sync</button>
-
-  <h3>Create Task</h3>
-  <input id="subject" placeholder="Task title">
-  <input id="assign" placeholder="Assign to (email)">
-  <button onclick="createTask()">Create</button>
-
-  <h3>Tasks</h3>
-  <div id="tasks"></div>
+<div id="splash">
+  <div class="splash-logo">&#10052;</div>
+  <div class="splash-title">Frost Tasks</div>
+  <div class="splash-sub">Frost Mechanical Works &middot; Kuwait</div>
+  <div class="login-card">
+    <div style="text-align:center;color:var(--text2);font-size:14px;line-height:1.6;">Connecting to your ERPNext account&hellip;</div>
+    <button class="btn-primary" id="login-btn" onclick="doLogin()">Connect to ERPNext</button>
+    <div id="login-err" style="font-size:13px;color:var(--red);text-align:center;display:none;"></div>
+  </div>
 </div>
 
-<script>
-const STATE={tasks:[]};
+<div id="app">
+  <div class="topbar">
+    <div class="topbar-inner">
+      <div class="topbar-left">
+        <h1 id="page-title">Dashboard</h1>
+        <p id="page-sub">Good morning &#128075;</p>
+      </div>
+      <div class="topbar-right">
+        <span class="conn-pill" id="conn-pill">Live</span>
+        <div class="avatar" id="user-avatar">M</div>
+      </div>
+    </div>
+  </div>
 
-// =====================
-// ERP HELPERS
-// =====================
+  <div class="page active scroll" id="page-dashboard">
+    <div class="stats-row animate-in">
+      <div class="stat-card open" onclick="filterTasks('Open')">
+        <div class="stat-num" id="cnt-open">0</div><div class="stat-label">Open</div>
+      </div>
+      <div class="stat-card progress" onclick="filterTasks('Working')">
+        <div class="stat-num" id="cnt-wip">0</div><div class="stat-label">In Progress</div>
+      </div>
+      <div class="stat-card done" onclick="filterTasks('Completed')">
+        <div class="stat-num" id="cnt-done">0</div><div class="stat-label">Done</div>
+      </div>
+    </div>
+    <div class="section-block animate-in delay-1">
+      <div class="section-hdr"><h2>Quick Actions</h2></div>
+      <div class="actions-grid">
+        <button class="action-btn blue" onclick="openModal('new-task')">
+          <div class="action-icon">&#10133;</div><div><div class="lbl">New Task</div><div class="sub">Add to project</div></div>
+        </button>
+        <button class="action-btn green" onclick="switchPage('tasks')">
+          <div class="action-icon">&#9989;</div><div><div class="lbl">My Tasks</div><div class="sub">View &amp; complete</div></div>
+        </button>
+        <button class="action-btn orange" onclick="switchPage('projects')">
+          <div class="action-icon">&#128193;</div><div><div class="lbl">Projects</div><div class="sub">All active jobs</div></div>
+        </button>
+        <button class="action-btn purple" onclick="openModal('log-time')">
+          <div class="action-icon">&#9201;</div><div><div class="lbl">Log Time</div><div class="sub">Timesheets</div></div>
+        </button>
+        <button class="action-btn cyan" onclick="openModal('new-note')">
+          <div class="action-icon">&#128221;</div><div><div class="lbl">Quick Note</div><div class="sub">Site notes</div></div>
+        </button>
+        <button class="action-btn red" onclick="openModal('report-issue')">
+          <div class="action-icon">&#9888;&#65039;</div><div><div class="lbl">Report Issue</div><div class="sub">Flag a problem</div></div>
+        </button>
+      </div>
+    </div>
+    <div class="section-block animate-in delay-2">
+      <div class="section-hdr"><h2>Active Projects</h2><button onclick="switchPage('projects')">See All</button></div>
+      <div id="dashboard-projects"><div class="empty-state"><div class="spinner"></div> Loading&hellip;</div></div>
+    </div>
+    <div class="section-block animate-in delay-3">
+      <div class="section-hdr"><h2>Open Tasks</h2><button onclick="switchPage('tasks')">All Tasks</button></div>
+      <div id="dashboard-tasks"><div class="empty-state"><div class="spinner"></div> Loading&hellip;</div></div>
+    </div>
+  </div>
+
+  <div class="page scroll" id="page-tasks">
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;">
+      <button class="badge active" style="cursor:pointer;padding:8px 16px;font-size:12px;" onclick="setTaskFilter('Open')">Open</button>
+      <button class="badge hold" style="cursor:pointer;padding:8px 16px;font-size:12px;" onclick="setTaskFilter('Working')">Working</button>
+      <button class="badge completed" style="cursor:pointer;padding:8px 16px;font-size:12px;" onclick="setTaskFilter('Completed')">Done</button>
+      <button class="badge" style="cursor:pointer;padding:8px 16px;font-size:12px;background:var(--surface2);color:var(--text2);" onclick="setTaskFilter('')">All</button>
+    </div>
+    <div id="tasks-list"><div class="empty-state"><div class="spinner"></div> Loading tasks&hellip;</div></div>
+    <div class="swipe-hint">Tap circle to update status &middot; Tap task to open in ERPNext</div>
+  </div>
+
+  <div class="page scroll" id="page-projects">
+    <div id="projects-list"><div class="empty-state"><div class="spinner"></div> Loading projects&hellip;</div></div>
+  </div>
+
+  <nav class="bottom-nav">
+    <button class="nav-btn active" onclick="switchPage('dashboard')" id="nav-dashboard">
+      <span class="nav-icon">&#127968;</span><span class="nav-label">Home</span>
+    </button>
+    <button class="nav-btn" onclick="switchPage('tasks')" id="nav-tasks">
+      <span class="nav-icon">&#9989;</span><span class="nav-label">Tasks</span>
+    </button>
+    <button class="nav-btn" onclick="openModal('new-task')" id="nav-add">
+      <span class="nav-icon" style="font-size:28px;background:linear-gradient(135deg,#1d4ed8,#3b82f6);border-radius:50%;width:44px;height:44px;display:flex;align-items:center;justify-content:center;color:#fff;box-shadow:0 6px 18px rgba(59,130,246,.4);margin-top:-8px;">+</span>
+      <span class="nav-label">Add</span>
+    </button>
+    <button class="nav-btn" onclick="switchPage('projects')" id="nav-projects">
+      <span class="nav-icon">&#128193;</span><span class="nav-label">Projects</span>
+    </button>
+    <button class="nav-btn" onclick="syncAll()" id="nav-sync">
+      <span class="nav-icon">&#128260;</span><span class="nav-label">Sync</span>
+    </button>
+  </nav>
+</div>
+
+<div class="modal-overlay" id="modal-new-task" onclick="closeModalOutside(event,'modal-new-task')">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-title">New Task</div>
+    <div class="field-group">
+      <div class="field-wrap"><label>TASK TITLE</label><input type="text" id="nt-subject" placeholder="e.g. Install AC unit - Floor 3"></div>
+      <div class="field-wrap"><label>PROJECT</label><select id="nt-project"><option value="">Select Project</option></select></div>
+      <div class="field-wrap"><label>ASSIGNED TO</label><input type="text" id="nt-assigned" placeholder="user@frost.com"></div>
+      <div class="field-wrap"><label>PRIORITY</label><select id="nt-priority"><option value="Medium">Medium</option><option value="High">High</option><option value="Low">Low</option><option value="Urgent">Urgent</option></select></div>
+      <div class="field-wrap"><label>DUE DATE</label><input type="date" id="nt-due"></div>
+      <div class="field-wrap"><label>DESCRIPTION</label><textarea id="nt-desc" placeholder="Notes, instructions..."></textarea></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal('modal-new-task')">Cancel</button>
+      <button class="btn-save" onclick="createTask()">Save Task</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-log-time" onclick="closeModalOutside(event,'modal-log-time')">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-title">Log Time</div>
+    <div class="field-group">
+      <div class="field-wrap"><label>PROJECT</label><select id="lt-project"><option value="">Select Project</option></select></div>
+      <div class="field-wrap"><label>TASK</label><select id="lt-task"><option value="">Select Task</option></select></div>
+      <div class="field-wrap"><label>HOURS</label><input type="number" id="lt-hours" placeholder="e.g. 2.5" step="0.5" min="0"></div>
+      <div class="field-wrap"><label>DATE</label><input type="date" id="lt-date"></div>
+      <div class="field-wrap"><label>NOTES</label><textarea id="lt-notes" placeholder="What was done..."></textarea></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal('modal-log-time')">Cancel</button>
+      <button class="btn-save" onclick="logTime()">Log Hours</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-new-note" onclick="closeModalOutside(event,'modal-new-note')">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-title">Quick Note</div>
+    <div class="field-group">
+      <div class="field-wrap"><label>PROJECT</label><select id="nn-project"><option value="">Select Project</option></select></div>
+      <div class="field-wrap"><label>NOTE</label><textarea id="nn-note" placeholder="Site observation, instruction, etc." style="min-height:140px;"></textarea></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal('modal-new-note')">Cancel</button>
+      <button class="btn-save" onclick="saveNote()">Save Note</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-report-issue" onclick="closeModalOutside(event,'modal-report-issue')">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-title">Report Issue</div>
+    <div class="field-group">
+      <div class="field-wrap"><label>PROJECT</label><select id="ri-project"><option value="">Select Project</option></select></div>
+      <div class="field-wrap"><label>ISSUE TITLE</label><input type="text" id="ri-title" placeholder="Brief description of problem"></div>
+      <div class="field-wrap"><label>SEVERITY</label><select id="ri-sev"><option value="Medium">Medium</option><option value="High">High</option><option value="Critical">Critical</option><option value="Low">Low</option></select></div>
+      <div class="field-wrap"><label>DETAILS</label><textarea id="ri-detail" placeholder="What happened, location, steps taken..." style="min-height:110px;"></textarea></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal('modal-report-issue')">Cancel</button>
+      <button class="btn-save" onclick="reportIssue()">Submit Issue</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const STATE={projects:[],tasks:[],currentPage:'dashboard',taskFilter:'Open'};
+
 function getCsrf(){
   const m=document.cookie.split(';').find(c=>c.trim().startsWith('csrf_token='));
   return m?m.split('=')[1]:'';
 }
 
-async function erpGet(url){
-  const r=await fetch(url,{credentials:'include'});
+async function erpGet(ep){
+  const r=await fetch(ep,{credentials:'include'});
+  if(!r.ok)throw new Error('API '+r.status);
   return r.json();
 }
 
-async function erpPost(url,data){
-  const r=await fetch(url,{
-    method:'POST',
-    credentials:'include',
-    headers:{
-      'Content-Type':'application/json',
-      'X-Frappe-CSRF-Token':getCsrf()
-    },
-    body:JSON.stringify(data)
-  });
+async function erpPost(ep,body){
+  const r=await fetch(ep,{method:'POST',credentials:'include',
+    headers:{'Content-Type':'application/json','X-Frappe-CSRF-Token':getCsrf()},
+    body:JSON.stringify(body)});
   return r.json();
 }
 
-// =====================
-// LOGIN CHECK
-// =====================
-async function checkLogin(){
-  const r=await fetch('/api/method/frappe.auth.get_logged_user',{credentials:'include'});
-  const d=await r.json();
-
-  if(!d.message || d.message==="Guest"){
-    window.location.href='/login?redirect-to='+encodeURIComponent(window.location.pathname);
+async function doLogin(){
+  const btn=document.getElementById('login-btn');
+  const err=document.getElementById('login-err');
+  err.style.display='none';
+  btn.innerHTML='<span class="spinner"></span>Connecting...';
+  btn.classList.add('loading');
+  try{
+    const r=await fetch('/api/method/frappe.auth.get_logged_user',{credentials:'include'});
+    const d=await r.json();
+    if(d.message&&d.message!=='Guest'){
+      const pr=await fetch('/api/resource/User/'+encodeURIComponent(d.message)+'?fields=["full_name","first_name"]',{credentials:'include'});
+      const pd=await pr.json();
+      const full=pd.data?.full_name||pd.data?.first_name||d.message;
+      launchApp(full,full[0].toUpperCase());
+      await syncAll();
+    }else{
+      window.location.href='/login?redirect-to=/frost_tasks';
+    }
+  }catch(e){
+    err.textContent='Could not connect. Make sure you are logged into ERPNext.';
+    err.style.display='block';
+    btn.innerHTML='Connect to ERPNext';
+    btn.classList.remove('loading');
   }
 }
 
-// =====================
-// SYNC
-// =====================
+function launchApp(name,initial){
+  document.getElementById('page-sub').textContent='Good morning, '+name.split(' ')[0]+' \uD83D\uDC4B';
+  document.getElementById('user-avatar').textContent=initial;
+  document.getElementById('splash').classList.add('hidden');
+  setTimeout(()=>{
+    document.getElementById('splash').style.display='none';
+    document.getElementById('app').classList.add('visible');
+    renderDashboard();renderProjects();renderTasks();
+  },500);
+}
+
 async function syncAll(){
   try{
-    const r=await erpGet('/api/resource/Task?fields=["name","subject","status"]&limit=50');
-    STATE.tasks=r.data||[];
-    render();
+    document.getElementById('conn-pill').textContent='Syncing...';
+    const [pR,tR]=await Promise.all([
+      erpGet('/api/resource/Project?fields=["name","project_name","status","percent_complete","expected_end_date"]&filters=[["status","!=","Cancelled"]]&order_by=modified+desc&limit=50'),
+      erpGet('/api/resource/Task?fields=["name","subject","project","status","priority","exp_end_date","assigned_to"]&filters=[["status","!=","Cancelled"]]&order_by=modified+desc&limit=100')
+    ]);
+    if(pR?.data)STATE.projects=pR.data;
+    if(tR?.data)STATE.tasks=tR.data;
+    renderDashboard();renderProjects();renderTasks();
+    showToast('Synced with ERPNext');
+    document.getElementById('conn-pill').className='conn-pill';
+    document.getElementById('conn-pill').textContent='Live';
   }catch(e){
-    alert("Offline or error");
+    document.getElementById('conn-pill').className='conn-pill offline';
+    document.getElementById('conn-pill').textContent='Offline';
+    showToast('Sync failed',true);
   }
 }
 
-// =====================
-// RENDER
-// =====================
-function render(){
-  const el=document.getElementById('tasks');
-  el.innerHTML=STATE.tasks.map(t=>`
-    <div class="card">
-      <b>${t.subject}</b><br>
-      Status: ${t.status}<br>
-      <button onclick="toggleTask('${t.name}','${t.status}')">Toggle</button>
-    </div>
-  `).join('');
+function renderDashboard(){
+  const open=STATE.tasks.filter(t=>t.status==='Open').length;
+  const wip=STATE.tasks.filter(t=>t.status==='Working').length;
+  const done=STATE.tasks.filter(t=>t.status==='Completed').length;
+  document.getElementById('cnt-open').textContent=open;
+  document.getElementById('cnt-wip').textContent=wip;
+  document.getElementById('cnt-done').textContent=done;
+  const ap=STATE.projects.filter(p=>p.status==='Active').slice(0,3);
+  const pp=document.getElementById('dashboard-projects');
+  pp.innerHTML=ap.length?ap.map(projHTML).join(''):'<div class="empty-state"><div class="empty-icon">&#128193;</div>No active projects</div>';
+  const ot=STATE.tasks.filter(t=>t.status==='Open').slice(0,5);
+  const tp=document.getElementById('dashboard-tasks');
+  tp.innerHTML=ot.length?ot.map(taskHTML).join(''):'<div class="empty-state"><div class="empty-icon">&#127881;</div>All caught up!</div>';
 }
 
-// =====================
-// CREATE TASK
-// =====================
+function renderProjects(){
+  const el=document.getElementById('projects-list');
+  el.innerHTML=STATE.projects.length?STATE.projects.map(projHTML).join(''):'<div class="empty-state"><div class="empty-icon">&#128193;</div>No projects found</div>';
+}
+
+function renderTasks(){
+  const el=document.getElementById('tasks-list');
+  let list=STATE.tasks;
+  if(STATE.taskFilter)list=list.filter(t=>t.status===STATE.taskFilter);
+  el.innerHTML=list.length?list.map(taskHTML).join(''):'<div class="empty-state"><div class="empty-icon">&#9989;</div>No tasks in this view</div>';
+}
+
+function projHTML(p){
+  const pct=Math.min(100,Math.round(p.percent_complete||0));
+  const fc=pct>=80?'fill-green':pct>=40?'fill-blue':'fill-yellow';
+  const bc={Active:'active',Completed:'completed',Hold:'hold',Cancelled:'cancelled'}[p.status]||'hold';
+  return '<div class="proj-card" onclick="openInERP(\'Project\',\''+p.name+'\')">'+
+    '<div class="proj-card-header"><div>'+
+    '<div class="proj-name">'+(p.project_name||p.name)+'</div>'+
+    '<div class="proj-meta">'+p.name+(p.expected_end_date?' &middot; Due '+p.expected_end_date:'')+'</div>'+
+    '</div><span class="badge '+bc+'">'+p.status+'</span></div>'+
+    '<div class="progress-bar-wrap"><div class="progress-bar-label"><span>Progress</span><span>'+pct+'%</span></div>'+
+    '<div class="progress-bar-track"><div class="progress-bar-fill '+fc+'" style="width:'+pct+'%"></div></div></div></div>';
+}
+
+function taskHTML(t){
+  const isDone=t.status==='Completed';
+  const isWIP=t.status==='Working';
+  const cc=isDone?'done':isWIP?'progress':'';
+  const ci=isDone?'&#10003;':isWIP?'&#9654;':'';
+  const pm={Urgent:'urgent',High:'urgent',Medium:'medium',Low:'low'};
+  const ptag=t.priority?'<span class="tag '+(pm[t.priority]||'medium')+'">'+t.priority+'</span>':'';
+  const jtag=t.project?'<span class="tag proj">'+t.project+'</span>':'';
+  return '<div class="task-item" onclick="openInERP(\'Task\',\''+t.name+'\')">'+
+    '<div class="task-check '+cc+'" onclick="event.stopPropagation();toggleTask(\''+t.name+'\')">'+ci+'</div>'+
+    '<div class="task-body">'+
+    '<div class="task-name '+(isDone?'done':'')+'">'+t.subject+'</div>'+
+    '<div class="task-detail">'+(t.assigned_to||'')+(t.exp_end_date?' &middot; '+t.exp_end_date:'')+'</div>'+
+    '<div class="task-tags">'+jtag+ptag+'</div></div></div>';
+}
+
+function openInERP(dt,name){
+  window.open('/app/'+dt.toLowerCase().replace(' ','-')+'/'+encodeURIComponent(name),'_blank');
+}
+
+async function toggleTask(name){
+  const t=STATE.tasks.find(x=>x.name===name);
+  if(!t)return;
+  const next=t.status==='Completed'?'Open':t.status==='Open'?'Working':'Completed';
+  t.status=next;
+  renderDashboard();renderTasks();
+  try{
+    await erpPost('/api/resource/Task/'+encodeURIComponent(name),{status:next});
+    showToast(next==='Completed'?'Task completed!':'Status: '+next);
+  }catch(e){showToast('Could not update task',true);}
+}
+
+function filterTasks(s){STATE.taskFilter=s;switchPage('tasks');}
+function setTaskFilter(s){STATE.taskFilter=s;renderTasks();}
+
 async function createTask(){
-  const subject=document.getElementById('subject').value;
-  const assign=document.getElementById('assign').value;
-
-  if(!subject){alert("Enter title");return;}
-
-  let body={
-    subject:subject,
-    status:"Open"
-  };
-
-  if(assign){
-    body._assign=JSON.stringify([assign]);
-  }
-
-  await erpPost('/api/resource/Task',body);
-  syncAll();
+  const sub=document.getElementById('nt-subject').value.trim();
+  if(!sub){showToast('Enter a task title',true);return;}
+  const body={subject:sub,project:document.getElementById('nt-project').value,
+    assigned_to:document.getElementById('nt-assigned').value,
+    priority:document.getElementById('nt-priority').value,
+    exp_end_date:document.getElementById('nt-due').value,
+    description:document.getElementById('nt-desc').value,status:'Open'};
+  try{
+    const res=await erpPost('/api/resource/Task',body);
+    if(res.data){body.name=res.data.name;STATE.tasks.unshift(body);renderDashboard();renderTasks();}
+    showToast('Task created in ERPNext!');
+    closeModal('modal-new-task');
+    document.getElementById('nt-subject').value='';
+  }catch(e){showToast('Failed to create task',true);}
 }
 
-// =====================
-// UPDATE TASK
-// =====================
-async function toggleTask(name,status){
-  const next=status==="Completed"?"Open":"Completed";
+async function logTime(){
+  const h=document.getElementById('lt-hours').value;
+  const proj=document.getElementById('lt-project').value;
+  const task=document.getElementById('lt-task').value;
+  const date=document.getElementById('lt-date').value;
+  if(!h||!proj){showToast('Enter hours and project',true);return;}
+  try{
+    await erpPost('/api/resource/Timesheet',{
+      time_logs:[{activity_type:'Execution',from_time:date+' 08:00:00',hours:parseFloat(h),project:proj,task:task}]
+    });
+    showToast(h+'h logged!');closeModal('modal-log-time');
+  }catch(e){showToast('Could not log time',true);}
+}
 
-  await erpPost('/api/method/frappe.client.set_value',{
-    doctype:"Task",
-    name:name,
-    fieldname:"status",
-    value:next
+function saveNote(){
+  const note=document.getElementById('nn-note').value.trim();
+  if(!note){showToast('Enter a note',true);return;}
+  closeModal('modal-new-note');showToast('Note saved!');
+}
+
+function reportIssue(){
+  const title=document.getElementById('ri-title').value.trim();
+  if(!title){showToast('Enter issue title',true);return;}
+  closeModal('modal-report-issue');showToast('Issue reported!');
+}
+
+function switchPage(page){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('page-'+page).classList.add('active');
+  const n=document.getElementById('nav-'+page);if(n)n.classList.add('active');
+  STATE.currentPage=page;
+  document.getElementById('page-title').textContent={dashboard:'Dashboard',tasks:'My Tasks',projects:'Projects'}[page]||page;
+}
+
+function openModal(id){
+  ['nt-project','lt-project','nn-project','ri-project'].forEach(sel=>{
+    const el=document.getElementById(sel);if(!el)return;
+    el.innerHTML='<option value="">Select Project</option>'+
+      STATE.projects.map(p=>'<option value="'+p.name+'">'+(p.project_name||p.name)+'</option>').join('');
   });
-
-  syncAll();
+  const lt=document.getElementById('lt-task');
+  if(lt)lt.innerHTML='<option value="">Select Task</option>'+
+    STATE.tasks.filter(t=>t.status!=='Completed').map(t=>'<option value="'+t.name+'">'+t.subject.substring(0,40)+'</option>').join('');
+  const today=new Date().toISOString().split('T')[0];
+  ['nt-due','lt-date'].forEach(f=>{const el=document.getElementById(f);if(el&&!el.value)el.value=today;});
+  document.getElementById('modal-'+id).classList.add('open');
 }
 
-// =====================
-// OFFLINE DETECTION
-// =====================
-window.addEventListener('offline',()=>alert("Offline"));
-window.addEventListener('online',()=>alert("Back Online"));
+function closeModal(id){document.getElementById(id).classList.remove('open');}
+function closeModalOutside(e,id){if(e.target===document.getElementById(id))closeModal(id);}
 
-// =====================
-// PWA INSTALL
-// =====================
-let deferredPrompt;
+let toastTimer;
+function showToast(msg,isError=false){
+  const el=document.getElementById('toast');
+  el.textContent=msg;
+  el.className='toast show'+(isError?' error':'');
+  clearTimeout(toastTimer);
+  toastTimer=setTimeout(()=>el.classList.remove('show'),2800);
+}
 
-window.addEventListener('beforeinstallprompt', (e)=>{
-  e.preventDefault();
-  deferredPrompt=e;
-
-  const btn=document.createElement('button');
-  btn.textContent="Install App";
-  btn.onclick=async ()=>{
-    deferredPrompt.prompt();
-    await deferredPrompt.userChoice;
-    deferredPrompt=null;
-  };
-
-  document.body.appendChild(btn);
+// Auto-detect ERPNext session on load
+window.addEventListener('load',()=>{
+  fetch('/api/method/frappe.auth.get_logged_user',{credentials:'include'})
+    .then(r=>r.json())
+    .then(d=>{
+      if(d.message&&d.message!=='Guest'){
+        fetch('/api/resource/User/'+encodeURIComponent(d.message)+'?fields=["full_name","first_name"]',{credentials:'include'})
+          .then(r=>r.json())
+          .then(pd=>{
+            const full=pd.data?.full_name||pd.data?.first_name||d.message;
+            launchApp(full,full[0].toUpperCase());
+            syncAll();
+          });
+      }
+    })
+    .catch(()=>{});
 });
-
-// =====================
-// SERVICE WORKER
-// =====================
-if('serviceWorker' in navigator){
-  navigator.serviceWorker.register('/sw.js');
-}
-
-// =====================
-// INIT
-// =====================
-checkLogin();
-syncAll();
-
 </script>
-
+<script>if('serviceWorker' in navigator){navigator.serviceWorker.register('/sw.js');}</script>
 </body>
 </html>
