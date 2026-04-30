@@ -1,0 +1,9 @@
+{
+  "name": "Frost Tasks",
+  "short_name": "Frost",
+  "start_url": "/frost_tasks",
+  "display": "standalone",
+  "background_color": "#0a0f1e",
+  "theme_color": "#0a0f1e",
+  "icons": []
+}
