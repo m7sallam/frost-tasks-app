@@ -5,3 +5,6 @@ requires-python = ">=3.10"
 
 [tool.bench.frappe]
 frappe_version = ">=15.0.0"
+
+[tool.flit.module]
+name = "frost_tasks_app"
